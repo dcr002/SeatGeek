@@ -1,0 +1,31 @@
+{
+    "name": "daniel/seat-geek",
+    "description": "SeatGeek",
+    "type": "library",
+    "require": {
+        "nategood/httpful": "dev-master"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^7"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "José Castellanos",
+            "email": "dcr002@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "SeatGeek\\": "Src/"
+        }
+    },
+    "repositories": [
+        {
+                "type": "composer",
+                "url": "https://packagist.org"
+        },
+        { "packagist": false }
+    ]
+}
