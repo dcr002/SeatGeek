@@ -6,14 +6,16 @@ use SeatGeek\SeatGeek;
 
     try{
         
-        $seat = new SeatGeek("MTQwMzI1MzB8MTU0MzU0NjUxNS40Mw","8e58a312e92f8e7f832ba783af3f51f19eb3a9b8040b56feae22372df9b1cc30");
+        #$seat = new SeatGeek();
 
-        $seat->setFormat("json");
+        $event = new Event("MTQwMzI1MzB8MTU0MzU0NjUxNS40Mw","8e58a312e92f8e7f832ba783af3f51f19eb3a9b8040b56feae22372df9b1cc30");
 
-        $event = new Event($seat);
+        $event->setFormat("json");
 
-        $event->pushPagination("per_page", "25")->pushPagination("page", "5");
+        #$event->pushPagination("per_page", "25")->pushPagination("page", "5");
 
+        $event->pushSorting("id", "desc")->pushFilter("listing_count", "gt", "20.00");
+        
         $result = $event->requestAndResponse(true);
 
         echo "TIPO DE RESPUESTA: " . gettype($result) . "\n";

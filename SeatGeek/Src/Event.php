@@ -16,10 +16,14 @@ class Event extends SeatGeek
     private $query = null;
     private $pagination = null;
     private $response = null;
+    private $sorting = null;
+    private $filter = null;
+    private $score = null;
+    private $partner = null;
 
     private $events_query = [
-        "geoip" => "?",   # TRUE / IP CLIENT (IP CLIENT SOLO EN USA Y CANADA)
-        "range" => "?",   # 12mi
+        "geoip" => "?",   # TRUE | IP CLIENT (IP CLIENT SOLO EN USA Y CANADA)
+        "range" => "?",   # 12mi | 18km
         "lat"   => "?",     # GRADOS DECIMALES 42.2711
         "lon"   => "?",     # GRADOS DECIMALES -89.0593
     ];
@@ -30,20 +34,45 @@ class Event extends SeatGeek
     ];
 
     private $events_sorting = [
-        
+        "datetime_local"=> "datetime_local",
+        "datetime_utc"  => "datetime_utc",
+        "announce_date" => "announce_date",
+        "id"            => "id",
+        "score"         => "score"
     ]; 
 
-    public function __construct($seat = null)
+    private $events_filter = [
+        "listing_count" => "listing_count",
+        "average_price" => "average_price",
+        "lowwest_price" => "lowwest_price",
+        "highest_price" => "highest_price",
+    ];
+
+    private $events_order = [
+        "asc"   => "asc",
+        "desc"  => "desc"
+    ];
+
+    private $events_filter_order = [
+        "lte"   => "lte",   # > mayor que
+        "gt"    => "gt"     # <= igual o menor que
+    ];
+
+    private $events_partner = [];
+
+    public function __construct(string $clientId, string $secret, string $format = "json")
     {
-        if( !($seat instanceof \SeatGeek\SeatGeek))
-            throw new \Exception("El constructor solo acepta un parametro de tipo \SeatGeek\SeatGeek");
+        #if( !($seat instanceof \SeatGeek\SeatGeek))
+        #    throw new \Exception("El constructor solo acepta un parametro de tipo \SeatGeek\SeatGeek");
             
-        $this->seat = $seat;
-        $this->query = [
-            "client_id" => $seat->getClientId(),
-            "client_secret" => $seat->getSecret(),
-            "format" => $seat->getFormat()
-        ];
+        #$this->seat = $seat;
+
+        if( is_null($clientId) || is_null($secret))
+            throw new \Exception("Debe proveer parámetros de autenticación.");
+
+        $this->seat = parent::__construct($clientId, $secret, $format);
+
+        $this->query = ["client_id" => $clientId, "client_secret" => $secret, "format" => $format];
 
     }
 
@@ -86,6 +115,32 @@ class Event extends SeatGeek
         return count($this->pagination) != 0;
     }
 
+    /**
+     * VALIDACION DE ATRIBUTOS DE ORDENAMIENTO
+     */
+    public function hasSorting()
+    {
+        return !is_null(($this->sorting));
+    }
+
+    /**
+     * VALIDACION DE ATRIUTOS DE FILTRADO
+     */
+
+    public function hasFilter()
+     {
+         return !is_null($this->filter);
+     }
+
+     /**
+      * VALIDACION DE ATRIBUTO DE PUNTUACION
+      */
+
+    public function hasScore()
+    {
+        return !is_null($this->score);
+    }
+
     ################################### FUNCIONES DE INSERCION ####################################
     /**
      * INSERTAR ATRIBUTOS DE QUERY STRING
@@ -115,6 +170,71 @@ class Event extends SeatGeek
         return $this;
     }
 
+    /**
+     * INSERTAR ATRIBUTOS DE ORDENAMIENTO
+     */
+    public function pushSorting($field, $order)
+    {
+        if( !is_null($this->sorting)){
+            throw new \Exception("Ya existe un parámetro de ordenamiento asignado");
+        }
+
+        if( !array_key_exists($field, $this->events_sorting) ){
+            throw new \Exception("Parámetro de clasificación ingresado no permitido");
+        }
+
+        if( !array_key_exists($order, $this->events_order) ){
+            throw new \Exception("Parámetro de ordenamiento ingresado no permitido");
+        }
+
+        $this->sorting = "{$field}.{$order}";
+
+        return $this;
+
+    }
+
+    /**
+     * INSERTA ATRIBUTOS DE FILTRADO
+     */
+    public function pushFilter($field, $order, $value)
+    {
+        if( !is_null($this->filter)){
+            throw new \Exception("Ya existe un parámetro de ordenamiento asignado");
+        }
+
+        if( !is_numeric($value))
+            throw new \Exception("Valor de filtrado debe ser numérico");
+
+        if( !array_key_exists($field, $this->events_filter) ){
+            throw new \Exception("Parámetro de filtrado ingresado no permitido");
+        }
+
+        if( !array_key_exists($order, $this->events_filter_order) ){
+            throw new \Exception("Parámetro de ordenamiento ingresado no permitido");
+        }
+
+        $this->filter = "{$field}.{$order}={$value}";
+
+        return $this;
+    }
+
+    /**
+     * INSERTAR ATRIBUTO DE PUNTUACION
+     */
+    public function pushScore($value)
+    {
+        if(!is_null($this->score))
+            throw new \Exception("Ya existe un parámetro de ordenamiento asignado");
+
+        if(!is_numeric($value))
+            throw new \Exception("Valor de puntuación debe ser numérico");
+        
+        if($value > 1 || $value < 0)
+            throw new \Exception("Valor de puntuación debe estar entre 0 y 1");
+
+        $this->score = "score={$value}";
+    }
+
     ################################## FUNCIONES DE RECUPERACION ##################################
     /**
      * OBTENER ATRIBUTOS QUERY STRING
@@ -124,11 +244,13 @@ class Event extends SeatGeek
         $query = null;
         $index = 0;
         foreach ($this->query as $key => $value) {
-        
-            if($index == 0)
-                $query .= "?";
 
-            $query .= "{$key}={$value}&";
+            if($index == 0){
+                $query .= "{$key}={$value}";
+            } else {
+                $query .= "&{$key}={$value}";
+            }
+            
             $index++;
         }
 
@@ -143,10 +265,49 @@ class Event extends SeatGeek
         $pagination = null;
         foreach ($this->pagination as $key => $value)
         {
-            $pagination .= "{$key}={$value}&";
+            $pagination .= "&{$key}={$value}";
         }
 
         return $pagination;
+    }
+
+    /**
+     * OBTENER ATRIBUTOS DE ORDENAMIENTO
+     */
+    public function getSorting()
+    {
+        $sorting = "";
+        
+        if(!is_null($this->sorting))
+            $sorting = "&sort={$this->sorting}";
+
+        return $sorting;
+    }
+
+    /**
+     * OBTENER ATRIBUTOS DE FILTRADO
+     */
+    public function getFilter()
+    {
+        $filter = "";
+
+        if(!is_null($this->filter))
+            $filter = "&{$this->filter}";
+
+        return $filter;
+    }
+
+    /**
+     * OBTENER ATRIBUTO DE PUNTUACION
+     */
+    public function getScore()
+    {
+        $score = "";
+
+        if(!is_null($this->score))
+            $score = "&{$this->score}";
+
+        return $score; 
     }
 
     #################################### FUNCIONES DE PETICION ####################################
@@ -168,18 +329,31 @@ class Event extends SeatGeek
 
             if($this->hasParam())
                 $uri .= "/{$this->param}";
+
+            $uri .= "?"; 
             
             if($this->hasQuery())
                 $uri .= $this->getQuery();
 
             if($this->hasPagination())
                 $uri .= $this->getPagination();
+            
+            if($this->hasSorting())
+                $uri .= $this->getSorting();
 
-            var_dump($uri); 
+            if($this->hasFilter())
+                $uri .= $this->getFilter();
 
+            if($this->hasScore())
+                $uri .= $this->getScore();
+
+            echo $uri; 
+
+            exit;
+            
             $request = \Httpful\Request::get($uri);
             
-            if($this->seat->getFormat() == "json"){
+            if($this->getFormat() == "json"){
 
                 $response = $request->expectsJson()->send();
                 $response = $response->body;
