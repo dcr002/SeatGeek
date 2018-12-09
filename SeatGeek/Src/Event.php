@@ -103,7 +103,7 @@ class Event extends SeatGeek
     /**
      * VALIDACION DE PARAMETROS
      */
-    public function hasParam()
+    private function hasParam()
     {
         return !(is_null($this->param));
     }
@@ -111,7 +111,7 @@ class Event extends SeatGeek
     /**
      * VALIDACION DE ATRIBUTOS QUERY STRING
      */
-    public function hasQuery()
+    private function hasQuery()
     {
         return count($this->query) != 0;
     }
@@ -119,7 +119,7 @@ class Event extends SeatGeek
     /**
      * VALIDACION DE ATRIBUTOS DE PAGINACION
      */
-    public function hasPagination()
+    private function hasPagination()
     {
         return count($this->pagination) != 0;
     }
@@ -127,7 +127,7 @@ class Event extends SeatGeek
     /**
      * VALIDACION DE ATRIBUTOS DE ORDENAMIENTO
      */
-    public function hasSorting()
+    private function hasSorting()
     {
         return !is_null(($this->sorting));
     }
@@ -136,7 +136,7 @@ class Event extends SeatGeek
      * VALIDACION DE ATRIUTOS DE FILTRADO
      */
 
-    public function hasFilter()
+    private function hasFilter()
      {
          return !is_null($this->filter);
      }
@@ -145,7 +145,7 @@ class Event extends SeatGeek
       * VALIDACION DE ATRIBUTO DE PUNTUACION
       */
 
-    public function hasScore()
+    private function hasScore()
     {
         return !is_null($this->score);
     }
@@ -153,7 +153,7 @@ class Event extends SeatGeek
     /**
      * VALIDACION DE ATRIBUTO PARTNER
      */
-    public function hasPartner()
+    private function hasPartner()
     {
         return count($this->partner) != 0;
     }
@@ -162,7 +162,7 @@ class Event extends SeatGeek
     /**
      * INSERTAR ATRIBUTOS DE QUERY STRING
      */
-    public function pushQuery($key, $value)
+    private function pushQuery($key, $value)
     {
 
         if(!array_key_exists($key, $this->events_query)){
@@ -259,9 +259,12 @@ class Event extends SeatGeek
      */
     public function pushPartner($field, $value)
     {
-        if( !array_key_exists($field, $this->events_partner)){
+        if( !array_key_exists($field, $this->events_partner))
             throw new \Exception("Parámetro de socio ingresado no permitido");   
-        }
+        
+
+        if(!is_numeric($value))
+            throw new \Exception("Parámetro de socio debe ser numérico");
 
         $this->partner[$field] = "{$field}={$value}";
 
@@ -365,7 +368,7 @@ class Event extends SeatGeek
      *      - XML
      *      - JSON
      */
-    public function requestAndResponse($returnArray = false)
+    public function requestAndResponse()
     {
 
         $response = null;
@@ -398,8 +401,6 @@ class Event extends SeatGeek
                 $uri .= $this->getPartner();
 
             echo $uri;
-
-            exit;
 
             $request = \Httpful\Request::get($uri);
 

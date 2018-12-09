@@ -18,7 +18,7 @@ use SeatGeek\SeatGeek;
         #
         $event->pushPartner("aid", 1323)->pushPartner("rid", 2435);
         
-        $result = $event->requestAndResponse(true);
+        $result = $event->requestAndResponse();
 
         echo "TIPO DE RESPUESTA: " . gettype($result) . "\n";
 
