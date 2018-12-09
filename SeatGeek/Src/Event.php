@@ -6,9 +6,6 @@ class Event extends SeatGeek
 {
 
     private $method = "GET";
-    /**
-     * Constructor
-     */
 
     private $path = "events";
     private $seat = null;
