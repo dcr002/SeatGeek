@@ -21,6 +21,8 @@ class Event extends SeatGeek
     private $score = null;
     private $partner = null;
 
+    private $specifity = null;
+
     private $events_query = [
         "geoip" => "?",   # TRUE | IP CLIENT (IP CLIENT SOLO EN USA Y CANADA)
         "range" => "?",   # 12mi | 18km
@@ -39,7 +41,7 @@ class Event extends SeatGeek
         "announce_date" => "announce_date",
         "id"            => "id",
         "score"         => "score"
-    ]; 
+    ];
 
     private $events_filter = [
         "listing_count" => "listing_count",
@@ -58,14 +60,24 @@ class Event extends SeatGeek
         "gt"    => "gt"     # <= igual o menor que
     ];
 
-    private $events_partner = [];
+    private $events_partner = [
+        "aid" => "aid",
+        "rid" => "rid"
+    ];
+
+    private $events_specifity = [
+        "home_team" => "home_team",
+        "home_team" => "away_team",
+        "home_team" => "primary",
+        "home_team" => "any"
+    ];
+
+    private $events_specifity_fields = [
+        "" => ""
+    ];
 
     public function __construct(string $clientId, string $secret, string $format = "json")
     {
-        #if( !($seat instanceof \SeatGeek\SeatGeek))
-        #    throw new \Exception("El constructor solo acepta un parametro de tipo \SeatGeek\SeatGeek");
-            
-        #$this->seat = $seat;
 
         if( is_null($clientId) || is_null($secret))
             throw new \Exception("Debe proveer parámetros de autenticación.");
@@ -83,11 +95,11 @@ class Event extends SeatGeek
     {
         if( (is_null($id)))
             throw new \Exception("Debe proveer un id de evento");
-        
+
         $this->param = $id;
 
         return $this;
-            
+
     }
 
     ################################### FUNCIONES DE VALIDACION ###################################
@@ -141,6 +153,14 @@ class Event extends SeatGeek
         return !is_null($this->score);
     }
 
+    /**
+     * VALIDACION DE ATRIBUTO PARTNER
+     */
+    public function hasPartner()
+    {
+        return count($this->partner) != 0;
+    }
+
     ################################### FUNCIONES DE INSERCION ####################################
     /**
      * INSERTAR ATRIBUTOS DE QUERY STRING
@@ -150,7 +170,7 @@ class Event extends SeatGeek
 
         if(!array_key_exists($key, $this->events_query)){
             throw new \Exception("Parámetro ingresado no permitido");
-        }        
+        }
 
         $this->query[$key] = str_replace("?", $value, $this->events_query[$key]);
 
@@ -164,7 +184,7 @@ class Event extends SeatGeek
     {
         if(!array_key_exists($key, $this->events_pagination))
             throw new \Exception("Parámetro de paginación ingresado no permitido");
-            
+
         $this->pagination[$key] = str_replace("?", $value, $this->events_pagination[$key]);
 
         return $this;
@@ -228,14 +248,30 @@ class Event extends SeatGeek
 
         if(!is_numeric($value))
             throw new \Exception("Valor de puntuación debe ser numérico");
-        
+
         if($value > 1 || $value < 0)
             throw new \Exception("Valor de puntuación debe estar entre 0 y 1");
 
         $this->score = "score={$value}";
+
+        return $this;
     }
 
-    ################################## FUNCIONES DE RECUPERACION ##################################
+    /**
+     * INSERTAR ATRIBUTO DE SOCIOS
+     */
+    public function pushPartner($field, $value)
+    {
+        if( !array_key_exists($field, $this->events_partner)){
+            throw new \Exception("Parámetro de socio ingresado no permitido");   
+        }
+
+        $this->partner[$field] = "{$field}={$value}";
+
+        return $this;
+    }
+
+    /*################################## FUNCIONES DE RECUPERACION ##################################*/
     /**
      * OBTENER ATRIBUTOS QUERY STRING
      */
@@ -250,7 +286,7 @@ class Event extends SeatGeek
             } else {
                 $query .= "&{$key}={$value}";
             }
-            
+
             $index++;
         }
 
@@ -277,7 +313,7 @@ class Event extends SeatGeek
     public function getSorting()
     {
         $sorting = "";
-        
+
         if(!is_null($this->sorting))
             $sorting = "&sort={$this->sorting}";
 
@@ -307,13 +343,27 @@ class Event extends SeatGeek
         if(!is_null($this->score))
             $score = "&{$this->score}";
 
-        return $score; 
+        return $score;
+    }
+
+    /**
+     * OBTENER ATRIBUTO DE SOCIO
+     */
+    public function getPartner()
+    {
+        $partner = "";
+
+        foreach ($this->partner as $key => $value) {
+           $partner .= "&{$value}";  
+        }
+
+        return $partner;
     }
 
     #################################### FUNCIONES DE PETICION ####################################
     /**
      * REALIZAR PETICION Y FORMATEAR REPUESTA
-     * 
+     *
      * FORMATOS POSIBLES:
      *      - XML
      *      - JSON
@@ -330,14 +380,14 @@ class Event extends SeatGeek
             if($this->hasParam())
                 $uri .= "/{$this->param}";
 
-            $uri .= "?"; 
-            
+            $uri .= "?";
+
             if($this->hasQuery())
                 $uri .= $this->getQuery();
 
             if($this->hasPagination())
                 $uri .= $this->getPagination();
-            
+
             if($this->hasSorting())
                 $uri .= $this->getSorting();
 
@@ -347,12 +397,15 @@ class Event extends SeatGeek
             if($this->hasScore())
                 $uri .= $this->getScore();
 
-            echo $uri; 
+            if($this->hasPartner())
+                $uri .= $this->getPartner();
+
+            echo $uri;
 
             exit;
-            
+
             $request = \Httpful\Request::get($uri);
-            
+
             if($this->getFormat() == "json"){
 
                 $response = $request->expectsJson()->send();
@@ -363,7 +416,7 @@ class Event extends SeatGeek
 
 
             } else {
-                
+
                 $response = $request->expectsXml()->send();
                 $response = $response;
 
@@ -373,7 +426,7 @@ class Event extends SeatGeek
             throw new \Exception($e->getMessage());
         }
 
-        return $response; 
+        return $response;
     }
 
 }

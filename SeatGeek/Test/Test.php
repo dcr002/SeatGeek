@@ -14,7 +14,9 @@ use SeatGeek\SeatGeek;
 
         #$event->pushPagination("per_page", "25")->pushPagination("page", "5");
 
-        $event->pushSorting("id", "desc")->pushFilter("listing_count", "gt", "20.00");
+        #$event->pushSorting("id", "desc")->pushFilter("listing_count", "gt", "20.00");
+        #
+        $event->pushPartner("aid", 1323)->pushPartner("rid", 2435);
         
         $result = $event->requestAndResponse(true);
 
